@@ -1,0 +1,124 @@
+:root {
+  --background: #0F0F17;
+  --card-bg: #1E1E2E;
+  --accent-primary: #8B5CF6;
+  --accent-secondary: #6D28D9;
+  --accent-glow: rgba(139, 92, 246, 0.15);
+  --text-primary: #FFFFFF;
+  --text-secondary: #A9A9BC;
+  --border: #2D2D3A;
+}
+
+#root, body, html {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+#root {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--background);
+  min-height: 100vh;
+}
+
+body {
+  background-color: var(--background);
+  margin: 0;
+  padding: 0;
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+button {
+  min-height: 44px;
+  -webkit-tap-highlight-color: transparent;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--accent-glow);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(139, 92, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+  }
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+.glass {
+  background: rgba(30, 30, 46, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--card-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-primary);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-secondary);
+}
+
+@media (min-width: 768px) {
+  .nft-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .nft-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+}
+
+.nft-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.nft-card:hover .nft-image {
+  transform: scale(1.05);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.image-loading {
+  background: linear-gradient(
+    90deg,
+    var(--card-bg) 0%,
+    var(--background) 20%,
+    var(--card-bg) 40%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Walletclient"
+        android:usesCleartextTraffic="true"
+        tools:targetApi="31">
+
+        <!-- Launcher Activity -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- CIP-158: web+cardano://browse/v1/... -->
+            <intent-filter android:label="CIP-158 Browse">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="web+cardano"
+                    android:host="browse"
+                    android:pathPrefix="/v1"/>
+            </intent-filter>
+        </activity>
+
+        <!-- In-App Browser for CIP-158 target URL -->
+        <activity
+            android:name=".ui.Cip158BrowserActivity"
+            android:exported="false"
+            android:launchMode="singleTop"/>
+
+        <!-- Wallet Connection Activity for QR Connection -->
+        <activity
+            android:name=".ui.WalletConnectionActivity"
+            android:exported="false"
+            android:launchMode="singleTop"/>
+
+        <activity
+            android:name="com.journeyapps.barcodescanner.CaptureActivity"
+            android:screenOrientation="portrait"
+            android:stateNotNeeded="true"
+            android:theme="@style/zxing_CaptureTheme"
+            tools:replace="android:screenOrientation" />
+    </application>
+</manifest>

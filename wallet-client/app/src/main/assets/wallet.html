@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- PeerJS for P2P connections -->
+    <script src="https://unpkg.com/peerjs@1.5.0/dist/peerjs.min.js"></script>
+    <!-- Wallet CSS -->
+    <link rel="stylesheet" href="css/wallet.css">
+</head>
+
+<body>
+    <!-- Status Cards - Shows PeerJS and P2P connection status -->
+    <div class="status-container">
+        <div class="status-card" id="status-peerjs">
+            <div class="status-indicator"></div>
+            <span class="status-text">Initializing connection...</span>
+        </div>
+
+        <div class="status-card" id="status-p2p">
+            <div class="status-indicator waiting"></div>
+            <span class="status-text">Waiting for dApp connection...</span>
+        </div>
+    </div>
+
+    <!-- Message Container - Displays connection log and events -->
+    <div class="messages-container">
+        <div class="header">
+            <span>Connection Log</span>
+            <button id="clear-log" class="clear-button">Clear Log</button>
+        </div>
+        <div id="messages"></div>
+    </div>
+
+    <!-- Action Buttons - User controls -->
+    <div class="action-buttons">
+        <button id="disconnect-button" class="disconnect-btn">Disconnect dApp</button>
+    </div>
+
+    <!-- JavaScript Files - Core wallet functionality -->
+    <script src="js/walletUtils.js"></script>
+    <script src="js/walletCore.js"></script>
+</body>
+
+</html>
