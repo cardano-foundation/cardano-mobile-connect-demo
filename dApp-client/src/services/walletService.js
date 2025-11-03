@@ -1,5 +1,6 @@
 import peerService from './peerService';
 import { createWalletRequest, createTextMessage, parseWalletMessage } from '../utils/messageUtils';
+import { WALLET_METHODS } from '../constants/constants';
 
 /**
  * Service for wallet communication
@@ -209,10 +210,9 @@ class WalletService {
                 metadata: "dApp Payment #" + Date.now()
             };
         }
-        //TODO!! Connection via in App Browser is not yet implemented
-        console.log("Signing needs to be implemented")
+        
+        return this.callWalletFunction(WALLET_METHODS.SIGN_TX, txData);
 
-        return false;
     }
 
     /**

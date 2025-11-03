@@ -440,6 +440,7 @@ function sendTransactionResult(requestId, approved, signature) {
             method: 'signTx',
             data: {
                 signature: signature || 'sig_' + Date.now() + '_xyz789',
+                txHash: 'tx_' + Date.now() + '_hash',
                 status: 'signed'
             }
         });

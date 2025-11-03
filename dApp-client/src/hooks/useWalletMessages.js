@@ -23,8 +23,9 @@ export function useWalletMessages(walletConnection) {
                         if (data.error) {
                             addMessage('Wallet', `Transaction REJECTED: ${data.error}`);
                         } else {
-                            addMessage('Wallet', `Transaction SIGNED! Hash: ${data.data.txHash}`);
+                            addMessage('Wallet', `Transaction SIGNED!`);
                             addMessage('Wallet', `Signature: ${data.data.signature}`);
+                            addMessage('Wallet', `Status: ${data.data.status}`);
                         }
                     } else {
                         addMessage('Wallet', `${data.method}: ${JSON.stringify(data.data)}`);
