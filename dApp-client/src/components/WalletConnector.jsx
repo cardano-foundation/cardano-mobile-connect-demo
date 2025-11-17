@@ -5,6 +5,9 @@ import { usePeerConnection } from '../hooks/usePeerConnection';
 import { useWalletConnection } from '../hooks/useWalletConnection.jsx';
 import { useWalletMessages } from '../hooks/useWalletMessages';
 
+import serviceManager from '../services/serviceManager';
+import inAppWalletService from '../services/inAppWalletService';
+
 import Navigation from './Navigation';
 import NftShop from './NFTShop';
 import MessageList from './MessageList';
@@ -21,18 +24,66 @@ export default function WalletConnector() {
     const [currentTransaction, setCurrentTransaction] = useState(null);
     const [connectedWalletId, setConnectedWalletId] = useState(null);
 
+    const [connectionMode, setConnectionMode] = useState(null);
+
     //Hooks
     const peerConnection = usePeerConnection();
     const walletConnection = useWalletConnection(peerConnection);
     const walletMessages = useWalletMessages(walletConnection);
 
     const { peerId, isReady } = peerConnection;
-    const { walletId, connected, disconnectWallet } = walletConnection;
+    const { walletId, connected: p2pConnected, disconnectWallet } = walletConnection;
     const { messages, signTransaction, addSystemMessage } = walletMessages;
 
+    //Check for connection mode
+    const connected = connectionMode === 'in-app-browser' 
+        ? inAppWalletService.isWalletBrowser()
+        : p2pConnected;
+
     useEffect(() => {
-        addSystemMessage("Welcome. Incoming Messages are displayed here.");
-    }, [addSystemMessage]);
+        console.log('WalletConnector: Checking for connection mode...');
+        
+        const checkConnectionMode = () => {
+            const mode = serviceManager.getConnectionMode();
+            console.log('Connection mode check:', mode);
+            
+            if (mode !== null) {
+                console.log('✓ Connection mode detected:', mode);
+                setConnectionMode(mode);
+                return true;
+            }
+            return false;
+        };
+
+        if (!checkConnectionMode()) {
+            console.log('Connection mode not ready yet, starting polling...');
+            
+            const interval = setInterval(() => {
+                if (checkConnectionMode()) {
+                    console.log('Polling stopped - connection mode ready');
+                    clearInterval(interval);
+                }
+            }, 100);
+
+            // Cleanup
+            return () => {
+                console.log('Cleaning up connection mode polling');
+                clearInterval(interval);
+            };
+        }
+    }, []);
+
+    useEffect(() => {
+        if (connectionMode === 'in-app-browser') {
+            addSystemMessage("Connected via Wallet In-App Browser (CIP-158)");
+            console.log('Running in In-App Browser mode');
+        } else if (connectionMode === 'p2p') {
+            addSystemMessage("Welcome. Connect your wallet via QR code or open this dApp in your wallets In-App Browser.");
+            console.log('Running in P2P mode');
+        } else {
+            console.log('Connection mode still pending...');
+        }
+    }, [connectionMode, addSystemMessage]);
 
     //Toggle for messages
     const toggleMessages = () => {
@@ -42,12 +93,17 @@ export default function WalletConnector() {
     //Handler for wallet connection
     const handleConnectWallet = (type) => {
 
-        if (type === null) {
+        //Disconnect (only p2p)
+        if (type === null && connectionMode === 'p2p') {
 
             addSystemMessage("Disconnecting wallet...");
             walletConnection.disconnectWallet();
             setConnectedWalletId(null);
-            setSelectedWallet(null);
+            return;
+        }
+
+        if (connectionMode === 'in-app-browser') {
+            addSystemMessage("Already connected via Wallet Browser");
             return;
         }
 
@@ -59,6 +115,7 @@ export default function WalletConnector() {
         }
     };
 
+    // Confirm CIP-158 Deep Link
     const confirmWalletConnect = () => {
         setShowConnectModal(false);
     
@@ -79,15 +136,31 @@ export default function WalletConnector() {
     };
 
     //Purchase
-    const handlePurchase = (purchaseData) => {
+    const handlePurchase = async (purchaseData) => {
         setCurrentTransaction(purchaseData);
-        setShowTransaction(true);
-        addSystemMessage(`Purchase started: ${purchaseData.productName} for ${purchaseData.amount}`);
+        
+        if (connectionMode === 'in-app-browser') {
+            //In-App
+            try {
+                addSystemMessage(`Signing transaction in wallet: ${purchaseData.productName}`);
+                
+                const signature = await inAppWalletService.signTransaction(purchaseData);
+                
+                addSystemMessage(`Transaction signed! Signature: ${signature.substring(0, 20)}...`);
+                
+            } catch (error) {
+                addSystemMessage(`Transaction rejected: ${error.message}`);
+            }
+        } else {
+
+            setShowTransaction(true);
+            addSystemMessage(`Purchase started: ${purchaseData.productName} for ${purchaseData.amount}`);
+        }
     };
 
-    //Transaction confirmation
+    //Transaction confirmation (p2p only)
     const confirmTransaction = () => {
-        if (currentTransaction) {
+        if (currentTransaction && connectionMode === 'p2p') {
             signTransaction(currentTransaction);
             setShowTransaction(false);
         }
@@ -106,7 +179,7 @@ export default function WalletConnector() {
                 isReady={isReady}
                 connected={connected}
                 onConnectWallet={handleConnectWallet}
-                walletId={walletId}
+                walletId={connectionMode === 'in-app-browser' ? 'In-App Wallet' : walletId}
                 messageCount={messages.length}
                 onToggleMessages={toggleMessages}
                 connectedWalletId={connectedWalletId}
@@ -125,6 +198,21 @@ export default function WalletConnector() {
                     <MessageList messages={messages} />
                 )}
 
+                {connectionMode === 'in-app-browser' && (
+                    <div style={{
+                        padding: '12px',
+                        marginBottom: '20px',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        border: '1px solid rgba(139, 92, 246, 0.3)',
+                        borderRadius: '8px',
+                        color: '#8B5CF6',
+                        fontSize: '14px',
+                        textAlign: 'center'
+                    }}>
+                        Connected via Wallet In-App Browser (CIP-158)
+                    </div>
+                )}
+
                 <NftShop
                     connected={connected}
                     onPurchase={handlePurchase}
@@ -132,7 +220,7 @@ export default function WalletConnector() {
             </div>
 
 
-            {showTransaction && currentTransaction && (
+            {showTransaction && currentTransaction && connectionMode === 'p2p' && (
                 <TransactionModal
                     transaction={currentTransaction}
                     onConfirm={confirmTransaction}
@@ -140,7 +228,7 @@ export default function WalletConnector() {
                 />
             )}
 
-            {showConnectModal && (
+            {showConnectModal && connectionMode === 'p2p' && (
                 <WalletConnectModal
                     onConfirm={confirmWalletConnect}
                     onCancel={cancelWalletConnect}

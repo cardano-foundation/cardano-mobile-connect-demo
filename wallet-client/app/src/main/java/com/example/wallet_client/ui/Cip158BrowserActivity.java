@@ -16,11 +16,15 @@ import android.webkit.WebViewClient;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.wallet_client.R;
+import com.example.wallet_client.bridge.Cip30WalletBridge;
+import com.example.wallet_client.model.TransactionRequest;
+import com.example.wallet_client.ui.DialogManager;
 
 import java.util.List;
 
@@ -42,7 +46,11 @@ import java.util.List;
  * - Internal web+cardano links can be processed again
  * - No File/JS interface needed here (pure browser)
  */
-public class Cip158BrowserActivity extends AppCompatActivity {
+public class Cip158BrowserActivity extends AppCompatActivity
+    implements Cip30WalletBridge.BridgeListener,
+               DialogManager.TransactionDialogListener {
+
+    private static final String TAG = "CIP158Browser";
 
     //Keys for Intent extras (set by MainActivity)
     public static final String EXTRA_TARGET_URL = "target_url";
@@ -55,6 +63,10 @@ public class Cip158BrowserActivity extends AppCompatActivity {
     private TextView titleView;
 
     private String callbackUrl;
+
+    private Cip30WalletBridge walletBridge;
+    private DialogManager dialogManager;
+    private String pendingTxId;
 
     /**
      * Activity creation and initialization
@@ -84,6 +96,9 @@ public class Cip158BrowserActivity extends AppCompatActivity {
         //Get callback & target URL from intent
         callbackUrl = getIntent().getStringExtra(EXTRA_CALLBACK_URL);
         String target = getIntent().getStringExtra(EXTRA_TARGET_URL);
+
+        dialogManager = new DialogManager(this);
+        walletBridge = new Cip30WalletBridge(webView, this);
 
         setupUiControls();
         setupWebView();
@@ -150,6 +165,8 @@ public class Cip158BrowserActivity extends AppCompatActivity {
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
 
+        webView.addJavascriptInterface(walletBridge, "CardanoWalletBridge");
+
         //Update title dynamically
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
@@ -181,6 +198,9 @@ public class Cip158BrowserActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 progress.setVisibility(View.GONE);
+
+                //TODO: Call for the CIP-30 Inject testing
+                injectCardanoApi();
             }
 
             @Override
@@ -228,6 +248,173 @@ public class Cip158BrowserActivity extends AppCompatActivity {
 
         });
     }
+
+    // ======================================
+    // TODO: New Injection Method
+    // ======================================
+
+    private void injectCardanoApi() {
+        String js = 
+            "(function() {" +
+            "  if (window.cardano) {" +
+            "    console.log('Cardano API already exists');" +
+            "    return;" +
+            "  }" +
+            "  " +
+            "  console.log('Injecting Cardano Wallet API (CIP-30-like)...');" +
+            "  " +
+            "  window.__cardanoCallbacks = {};" +
+            "  " +
+            "  window.cardano = {" +
+            "    demoWallet: {" +
+            "      apiVersion: '" + walletBridge.getApiVersion() + "'," +
+            "      name: '" + walletBridge.getName() + "'," +
+            "      icon: '" + walletBridge.getIcon() + "'," +
+            "      " +
+            "      isEnabled: function() {" +
+            "        console.log('cardano.demoWallet.isEnabled() called');" +
+            "        return Promise.resolve(true);" +
+            "      }," +
+            "      " +
+            "      enable: function() {" +
+            "        console.log('cardano.demoWallet.enable() called');" +
+            "        return Promise.resolve(this);" +
+            "      }," +
+            "      " +
+            "      getNetworkId: function() {" +
+            "        console.log('cardano.demoWallet.getNetworkId() called');" +
+            "        return Promise.resolve(0);" + // 0 = Testnet, 1 = Mainnet
+            "      }," +
+            "      " +
+            "      getBalance: function() {" +
+            "        console.log('cardano.demoWallet.getBalance() called');" +
+            "        return new Promise((resolve) => {" +
+            "          const id = 'bal_' + Date.now();" +
+            "          window.__cardanoCallbacks[id] = resolve;" +
+            "          CardanoWalletBridge.getBalance(id);" +
+            "        });" +
+            "      }," +
+                        "      " +
+            "      getUsedAddresses: function() {" +
+            "        console.log('cardano.demoWallet.getUsedAddresses() called');" +
+            "        return new Promise((resolve) => {" +
+            "          const id = 'addr_' + Date.now();" +
+            "          window.__cardanoCallbacks[id] = resolve;" +
+            "          CardanoWalletBridge.getAddresses(id);" +
+            "        });" +
+            "      }," +
+            "      " +
+            "      signTx: function(txCbor, partialSign, metadata) {" +
+            "        console.log('cardano.demoWallet.signTx() called with:', { txCbor, partialSign, metadata });" +
+            "        return new Promise((resolve, reject) => {" +
+            "          const txId = 'tx_' + Date.now();" +
+            "          window.__cardanoCallbacks[txId] = (result) => {" +
+            "            console.log('Transaction result:', result);" +
+            "            if (result.success) {" +
+            "              resolve(result.signature);" +
+            "            } else {" +
+            "              reject(new Error(result.error || 'User rejected transaction'));" +
+            "            }" +
+            "          };" +
+            "          " +
+            "          CardanoWalletBridge.signTx(JSON.stringify({" +
+            "            txId: txId," +
+            "            txCbor: txCbor || ''," +
+            "            metadata: JSON.stringify(metadata || {})" +
+            "          }));" +
+            "        });" +
+            "      }" +
+            "    }" +
+            "  };" +
+            "  " +
+            "  console.log('✓ Cardano Wallet API injected successfully');" +
+            "  console.log('Available: window.cardano.demoWallet');" +
+            "})();";
+
+        webView.evaluateJavascript(js, result -> {
+            Log.d(TAG, "window.cardano API injected");
+        });
+    }
+
+    @Override
+    public void onSignTxRequest(String txId, String txCbor, String metadata) {
+        Log.d(TAG, "Transaction signature requested: " + txId);
+        
+        runOnUiThread(() -> {
+            pendingTxId = txId;
+
+            // Parse metadata zu TransactionRequest
+            TransactionRequest request = parseTransactionRequest(txId, metadata);
+
+            // Zeige nativen Dialog
+            dialogManager.showTransactionDialog(request, this);
+        });
+    }
+
+    @Override
+    public void onGetBalance(String callbackId) {
+        // Mock Balance: 1234.56 ADA = 1234560000 Lovelace
+        String balance = "1234560000";
+        walletBridge.sendBalance(callbackId, balance);
+    }
+
+    @Override
+    public void onGetAddresses(String callbackId) {
+        // Mock Addresses (hex-encoded)
+        String addressesJson = "[\"019f5d8c3c8e7b3a2d1f4e6c8a9b2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f\"]";
+        walletBridge.sendAddresses(callbackId, addressesJson);
+    }
+
+    @Override
+    public void onError(String error) {
+        runOnUiThread(() -> {
+            Toast.makeText(this, "Wallet Error: " + error, Toast.LENGTH_LONG).show();
+        });
+    }
+
+    @Override
+    public void onTransactionApproved(String signature) {
+        if (pendingTxId != null) {
+            Log.d(TAG, "User approved transaction: " + pendingTxId);
+            walletBridge.sendTxResult(pendingTxId, true, signature);
+            pendingTxId = null;
+            Toast.makeText(this, "Transaction signed!", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onTransactionRejected() {
+        if (pendingTxId != null) {
+            Log.d(TAG, "User rejected transaction: " + pendingTxId);
+            walletBridge.sendTxResult(pendingTxId, false, null);
+            pendingTxId = null;
+            Toast.makeText(this, "Transaction rejected", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * Parse metadata JSON zu TransactionRequest für Dialog
+     */
+    private TransactionRequest parseTransactionRequest(String txId, String metadata) {
+        try {
+            org.json.JSONObject meta = new org.json.JSONObject(metadata);
+            return new TransactionRequest(
+                txId,
+                meta.optString("type", "Payment"),
+                meta.optString("amount", "Unknown"),
+                meta.optString("recipient", "Unknown"),
+                meta.optString("fee", "Unknown"),
+                meta.optString("metadata", "None")
+            );
+        } catch (Exception e) {
+            Log.e(TAG, "Error parsing transaction metadata", e);
+            return new TransactionRequest(
+                txId, "Unknown", "Unknown", "Unknown", "Unknown", "Parse Error"
+            );
+        }
+    }
+
+    // =========================================
 
     /**
      * Extract target URL from CIP-158 deep link
