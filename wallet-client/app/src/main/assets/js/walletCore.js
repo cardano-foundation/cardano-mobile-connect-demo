@@ -576,6 +576,50 @@ function handleHeartbeat(data) {
     }
 }
 
+function connectToDappWithConfig(dappPeerId, host, port, path, secure) {
+
+    console.log(`Switching to custom server: ${host}`);
+    addMessage(`Switching to custom server...`, 'info');
+
+    //Close old connection to default PeerJS Server
+    if (peer && !peer.destroyed) {
+        peer.destroy();
+    }
+    peer = null;
+
+    const customConfig = {
+        host: host,
+        port: port,
+        path: path,
+        secure: secure,
+        debug: 2,
+        config: {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        }
+    };
+
+    walletId = getPersistentWalletId();
+    peer = new Peer(walletId, customConfig);
+
+    setupPeerEvents();
+
+    peer.on('open', (id) => {
+        console.log('Connected to custom server with ID:', id);
+        updatePeerJsStatus(`Custom Server: ${host}`, true);
+        
+        // Jetzt verbinden wir uns zur dApp
+        connectToDapp(dappPeerId);
+    });
+
+    peer.on('error', (err) => {
+        console.error('Custom Server Error:', err);
+        addMessage('Server connection failed: ' + err.type, 'error');
+    });
+}
+
 /**
  * Disconnect from the current dApp connection
  * Can be called from UI or by Android
@@ -684,5 +728,6 @@ window.cleanupWallet = cleanupWallet;
 window.forceReconnectForP2P = forceReconnectForP2P;
 window.sendTransactionResult = sendTransactionResult;
 window.disconnectFromDapp = disconnectFromDapp;
+window.connectToDappWithConfig = connectToDappWithConfig;
 
 console.log('Wallet core loaded and ready');

@@ -76,7 +76,7 @@ class InAppWalletService {
         }
 
         // Mock transaction CBOR
-        const mockTxCbor = "84a400818258200000000000000000000000000000000000000000000000000000000000000000000182825839000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001a000f4240021a0002c221a0";
+        const mockTxCbor = "84a40081825820" + "00".repeat(32) + "00";
 
         // Metadata for native dialog
         const metadata = {
@@ -128,6 +128,36 @@ class InAppWalletService {
             throw new Error('Wallet API not available');
         }
         return await this.walletApi.getUsedAddresses();
+    }
+
+    /**
+     * Disconnect from In-App Browser
+     * Closes the WebView and returns to wallet
+     */
+    disconnect() {
+        if (!this.isInWalletBrowser) {
+            console.log('Not in wallet browser, cannot close WebView');
+            return;
+        }
+
+        console.log('Closing In-App Browser WebView');
+
+        // Trigger Android back navigation
+        if (window.history.length > 1) {
+            // Go back to wallet
+            window.history.back();
+        } else {
+            // No history
+            // The wallet should handle this via finishWithCallback
+            if (typeof Android !== 'undefined' && Android.closeWebView) {
+                Android.closeWebView();
+            } else {
+                // Fallback
+                window.close();
+            }
+        }
+
+        this._notifyListeners('disconnected', {});
     }
 
     /**

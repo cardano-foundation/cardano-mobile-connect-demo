@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
+import { PEER_CONFIG } from '../constants/constants';
 
 /**
  * QR-Code Connector - Generates QR Code for peerjs connection
@@ -16,7 +17,15 @@ export default function QRCodeConnector({ peerId, isReady, connected, compact = 
   const generateQRCode = async () => {
     try {
 
-      const qrData = `wallet://connect?dappPeer=${peerId}`;
+      let qrData = `wallet://connect?dappPeer=${peerId}`;
+
+      const conf = PEER_CONFIG.config;
+      if (conf.host) {
+          qrData += `&host=${encodeURIComponent(conf.host)}`;
+          qrData += `&port=${conf.port}`;
+          qrData += `&path=${encodeURIComponent(conf.path)}`;
+          qrData += `&secure=${conf.secure}`;
+      }
       
       console.log('Generating QR Code for dApp connection:', qrData);
       

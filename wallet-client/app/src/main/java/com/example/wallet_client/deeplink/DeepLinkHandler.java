@@ -111,10 +111,19 @@ public class DeepLinkHandler {
      */
     private void handleConnectionRequest(Uri data) {
         String dappPeerId = data.getQueryParameter("dappPeer");
+
+        String host = data.getQueryParameter("host");
+        String portStr = data.getQueryParameter("port");
+        String path = data.getQueryParameter("path");
+        String secureStr = data.getQueryParameter("secure");
+
+        // Default value if parameter is missing
+        int port = (portStr != null && !portStr.isEmpty()) ? Integer.parseInt(portStr) : 0;
+        boolean secure = !"false".equalsIgnoreCase(secureStr);
         
         if (dappPeerId != null) {
             Log.d(TAG, "Processing connection request from: " + dappPeerId);
-            ConnectionRequest request = new ConnectionRequest(dappPeerId);
+            ConnectionRequest request = new ConnectionRequest(dappPeerId, host, port, path, secure);
             listener.onConnectionRequest(request);
         } else {
             Log.e(TAG, "Missing dappPeer parameter in connection request");

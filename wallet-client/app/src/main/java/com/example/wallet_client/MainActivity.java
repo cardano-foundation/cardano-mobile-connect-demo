@@ -425,6 +425,14 @@ public class MainActivity extends AppCompatActivity implements DeepLinkHandler.D
         //Start WalletConnectionActivity for P2P connection
         Intent intent = new Intent(this, WalletConnectionActivity.class);
         intent.putExtra("dapp_peer_id", request.getDappPeerId());
+
+        if (request.getHost() != null) {
+            intent.putExtra("host", request.getHost());
+            intent.putExtra("port", request.getPort());
+            intent.putExtra("path", request.getPath());
+            intent.putExtra("secure", request.isSecure());
+        }
+
         startActivity(intent);
     }
 

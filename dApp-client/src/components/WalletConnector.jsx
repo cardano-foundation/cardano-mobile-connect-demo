@@ -48,7 +48,7 @@ export default function WalletConnector() {
             console.log('Connection mode check:', mode);
             
             if (mode !== null) {
-                console.log('✓ Connection mode detected:', mode);
+                console.log('Connection mode detected:', mode);
                 setConnectionMode(mode);
                 return true;
             }
@@ -112,6 +112,25 @@ export default function WalletConnector() {
         if (type === 'cip158') {
             //CIP-158 Connection
             setShowConnectModal(true);
+        }
+    };
+
+    const handleDisconnect = () => {
+        console.log('Disconnect requested, mode:', connectionMode);
+
+        if (connectionMode === 'in-app-browser') {
+            // In-App Browser closes webView
+            console.log('Closing In-App Browser WebView');
+            addSystemMessage("Closing wallet browser");
+            
+            inAppWalletService.disconnect();
+        } else if (connectionMode === 'p2p') {
+            // P2P Mode
+            console.log('Disconnecting P2P connection');
+            addSystemMessage("Disconnecting wallet");
+            
+            disconnectWallet();
+            setConnectedWalletId(null);
         }
     };
 
@@ -183,7 +202,7 @@ export default function WalletConnector() {
                 messageCount={messages.length}
                 onToggleMessages={toggleMessages}
                 connectedWalletId={connectedWalletId}
-                onDisconnect={disconnectWallet}
+                onDisconnect={handleDisconnect}
             />
 
             <div style={{

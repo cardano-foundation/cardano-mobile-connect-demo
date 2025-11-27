@@ -279,9 +279,20 @@ public class WalletConnectionActivity extends AppCompatActivity
     @Override
     public void onConnectionApproved() {
         Log.d(TAG, "User approved QR connection to dApp: " + dappPeerId);
-    
-        //Initiate P2P connection
-        webViewManager.connectToDapp(dappPeerId);
+
+        String host = getIntent().getStringExtra("host");
+
+        if (host != null) {
+            int port = getIntent().getIntExtra("port", 443);
+            String path = getIntent().getStringExtra("path");
+            boolean secure = getIntent().getBooleanExtra("secure", true);
+            
+            Log.d(TAG, "Connecting via custom server: " + host);
+            webViewManager.connectToDappWithConfig(dappPeerId, host, port, path, secure);
+        } else {
+            // Standard Connect (PeerJS Cloud)
+            webViewManager.connectToDapp(dappPeerId);
+        }
     
         Toast.makeText(this, "Connecting to dApp...", Toast.LENGTH_LONG).show();
     }

@@ -53,15 +53,7 @@ class PeerService {
             const persistentId = getPersistentDappId();
             console.log("Creating new dApp peer with ID:", persistentId);
 
-            this.peer = new Peer(persistentId, {
-                debug: 1,
-                config: {
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
-                    ]
-                }
-            });
+            this.peer = new Peer(persistentId, PEER_CONFIG.config);
 
             //Event handler of 'open'
             this.peer.once('open', (id) => {

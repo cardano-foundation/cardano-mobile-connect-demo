@@ -4,13 +4,18 @@
 
 //PeerJS config
 export const PEER_CONFIG = {
-  debug: 1,
+  debug: 2,
   config: {
-        iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-    }
+    //Test Server
+    host: 'peerjs.dev.ecosyseng.cf-deployments.org',
+    port: 443,
+    path: '/',
+    secure: true,
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+    ]
+  }
 };
 
 //Connection constants

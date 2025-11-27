@@ -184,6 +184,17 @@ public class WalletWebViewManager {
     }
 
     /**
+     * Connect to a specific dApp with custom server config
+     */
+    public void connectToDappWithConfig(String dappPeerId, String host, int port, String path, boolean secure) {
+        String js = String.format(
+            "window.connectToDappWithConfig && window.connectToDappWithConfig('%s', '%s', %d, '%s', %b)", 
+            dappPeerId, host, port, path, secure
+        );
+        webView.evaluateJavascript(js, null);
+    }
+
+    /**
      * Connect to a specific dApp (QR-initiated connection)
      * 
      * @param dappPeerId PeerJS ID of the dApp to connect to
