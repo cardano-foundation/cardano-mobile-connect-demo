@@ -52,7 +52,11 @@ npm install
 
 #### Starting the Wallet Client
 
-Open in Android Studio and run in an Emulator or on Device
+Open in Android Studio and run in an Emulator or on Device.
+
+#### Add a PeerJS Server URL
+
+Open Constants.js in the dApp and add a PeerJS Server URL here. This will get used by dApp and Wallet for connection making.
 
 #### Starting the dApp Client
 
